@@ -12,7 +12,7 @@ import cifar10
 #get the optimizer
 os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
 os.environ['GRPC_VERBOSITY_LEVEL']='DEBUG'
-
+   
 # input flags
 tf.app.flags.DEFINE_string("job_name", "", "Either 'ps' or 'worker'")
 tf.app.flags.DEFINE_integer("task_index", 0, "Index of task within the job")
@@ -57,18 +57,20 @@ elif FLAGS.job_name == "worker":
         is_chief = FLAGS.task_index == 0
 	# count the number of global steps
 	global_step = tf.get_variable('global_step',[],initializer = tf.constant_initializer(0),trainable = False)
+	start = tf.Variable(time.time(), dtype=tf.float64,trainable = False)
+	start_copy = tf.placeholder(tf.float64)
+	update = tf.assign(start, start_copy)
+	with tf.name_scope('runtime'):
+	    temp = global_time
+	    global_time = end_time
+	    runtime_epoch = global_time -temp
 	
 	# input images
 	x, y_ = cifar10.distorted_inputs()
 	
 	#creat an CNN for cifar10
   	y_conv = cifar10.inference(x)
- 	'''
-	# specify cost function
-	loss = cifar10.loss(y_conv, y_)
-	
-	train_op = cifar10.train(loss, global_step)
-	'''
+ 
 	loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
 	# specify optimizer
 	with tf.name_scope('train'):
@@ -116,7 +118,7 @@ elif FLAGS.job_name == "worker":
 			    " Loss: %f" % cost,
 			    " Bctch_Time: %fs" % float(time.time()-batch_time))
 	    batch_time = time.time()
-	    if ((step+1) % int(num_batches_per_epoch) == 0):
+	    if ((step+1) % ininit_op = tf.global_variables_initializer()t(num_batches_per_epoch) == 0):
 		Epoch_Time = float(time.time()-epoch_time)
 		n=n+1
 	    	print("Epoch: %d," % (n), 
