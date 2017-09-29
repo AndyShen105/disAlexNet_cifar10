@@ -57,13 +57,9 @@ elif FLAGS.job_name == "worker":
         is_chief = FLAGS.task_index == 0
 	# count the number of global steps
 	global_step = tf.get_variable('global_step',[],initializer = tf.constant_initializer(0),trainable = False)
-	start = tf.Variable(time.time(), dtype=tf.float64,trainable = False)
+	start_time = tf.Variable(time.time() ,dtype = tf.float64, trainable = False)
 	start_copy = tf.placeholder(tf.float64)
-	update = tf.assign(start, start_copy)
-	with tf.name_scope('runtime'):
-	    temp = global_time
-	    global_time = end_time
-	    runtime_epoch = global_time -temp
+	update = tf.assign(start_time, start_copy, validate_shape=None)
 	
 	# input images
 	x, y_ = cifar10.distorted_inputs()
@@ -83,7 +79,6 @@ elif FLAGS.job_name == "worker":
 	
 	init_op = tf.global_variables_initializer()
 	variables_check_op=tf.report_uninitialized_variables()
-
     	sess_config = tf.ConfigProto(
         	allow_soft_placement=True,
         	log_device_placement=False,
@@ -102,7 +97,7 @@ elif FLAGS.job_name == "worker":
 	step = 0
 	cost = 0
 	final_accuracy = 0
-	start_time = time.time()
+	begin_time = time.time()
 	batch_time = time.time()
 	n = 0
 	cost = 1.0
@@ -118,20 +113,21 @@ elif FLAGS.job_name == "worker":
 			    " Bctch_Time: %fs" % float(time.time()-batch_time))
 	    batch_time = time.time()
 	    if ((step+1) % num_batches_per_epoch == 0):
-		epoch_time = sess.run(start)
-		Epoch_Time = float(time.time()-epoch_time)
-		update_time = int(time.time())
-		sess.run(update, feed_dict={end_time: update_time})
+		epoch_time = sess.run(start_time)
+		print (epoch_time)
+		update_time = float(time.time())
+		Epoch_Time = float(update_time - epoch_time)
+		sess.run(update, feed_dict={start_copy: update_time})
 		n=n+1
 	    	print("Epoch: %d," % (n), 
 			" Loss: %f" % cost,
 			" Epoch_Time: %fs" % Epoch_Time,
-			" Tolal_Time: %fs" % float(time.time()-start_time))
-		epoch_time = time.time()
+			" Tolal_Time: %fs" % float(time.time()-begin_time))
+		
 		line = str(n)+","+str(n_PS) + ',' + str(n_Workers) +",RoundRobinStrategy,asynchronous," + str(Optimizer) + ',' + str(batch_size) + ','+"learning_rate"+ ',' + str(cost) + ',' + str(Epoch_Time)
         	process_data.write(line+"\r\n")
 
-    	total_time = time.time()-start_time
+    	total_time = time.time()-begin_time
         result = str(n_PS) + ',' + str(n_Workers) +",RoundRobinStrategy,asynchronous," + str(Optimizer) + ',' + str(batch_size) + ','+"learning_rate"+ ',' + str(cost) + ',' + str(total_time)
 	result_data.write(result+"\r\n")
 	result_data.close()
