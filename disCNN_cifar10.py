@@ -104,7 +104,6 @@ elif FLAGS.job_name == "worker":
 	final_accuracy = 0
 	start_time = time.time()
 	batch_time = time.time()
-	epoch_time = time.time()
 	n = 0
 	cost = 1.0
 	step = 0
@@ -118,8 +117,11 @@ elif FLAGS.job_name == "worker":
 			    " Loss: %f" % cost,
 			    " Bctch_Time: %fs" % float(time.time()-batch_time))
 	    batch_time = time.time()
-	    if ((step+1) % ininit_op = tf.global_variables_initializer()t(num_batches_per_epoch) == 0):
+	    if ((step+1) % num_batches_per_epoch == 0):
+		epoch_time = sess.run(start)
 		Epoch_Time = float(time.time()-epoch_time)
+		update_time = int(time.time())
+		sess.run(update, feed_dict={end_time: update_time})
 		n=n+1
 	    	print("Epoch: %d," % (n), 
 			" Loss: %f" % cost,
