@@ -16,11 +16,11 @@ os.environ['GRPC_VERBOSITY_LEVEL']='DEBUG'
 # input flags
 tf.app.flags.DEFINE_string("job_name", "", "Either 'ps' or 'worker'")
 tf.app.flags.DEFINE_integer("task_index", 0, "Index of task within the job")
-tf.app.flags.DEFINE_float("targted_accuracy", 0.5, "targted accuracy of model")
+tf.app.flags.DEFINE_float("targted_loss", 0.05, "targted accuracy of model")
 tf.app.flags.DEFINE_string("optimizer", "SGD", "optimizer we adopted")
 tf.app.flags.DEFINE_integer("Batch_size", 128, "Batch size")
 tf.app.flags.DEFINE_float("Learning_rate", 0.0001, "Learning rate")
-tf.app.flags.DEFINE_integer("Epoch", 10, "Epoch")
+tf.app.flags.DEFINE_integer("Epoch", 1, "Epoch")
 tf.app.flags.DEFINE_string("imagenet_path", 10, "ImageNet data path")
 FLAGS = tf.app.flags.FLAGS
 
@@ -40,7 +40,7 @@ server = tf.train.Server(
 # config
 batch_size = FLAGS.Batch_size
 learning_rate = FLAGS.Learning_rate
-targted_accuracy = FLAGS.targted_accuracy
+targted_loss = FLAGS.targted_loss
 Optimizer = FLAGS.optimizer
 Epoch = FLAGS.Epoch
 imagenet_path = FLAGS.imagenet_path
@@ -63,20 +63,17 @@ elif FLAGS.job_name == "worker":
 	
 	#creat an CNN for cifar10
   	y_conv = cifar10.inference(x)
-
+ 	'''
 	# specify cost function
 	loss = cifar10.loss(y_conv, y_)
-
-	
-	with tf.name_scope('learning_rate'):
-	    lr = tf.train.exponential_decay(learning_rate,
-                                  global_step,
-                                  decay_steps,
-                                  LEARNING_RATE_DECAY_FACTOR,
-                                  staircase=True)
 	
 	train_op = cifar10.train(loss, global_step)
-
+	'''
+	loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
+	# specify optimizer
+	with tf.name_scope('train'):
+	    grad_op = get_optimizer( "Adam", learning_rate)
+	    train_op = grad_op.minimize(loss, global_step=global_step)
 	# accuracy
 	with tf.name_scope('Accuracy'):
 	    correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
@@ -106,29 +103,33 @@ elif FLAGS.job_name == "worker":
 	start_time = time.time()
 	batch_time = time.time()
 	epoch_time = time.time()
-	while (not sv.should_stop()):
-	    #Read batch_size data
-	    for e in range(Epoch):
-		for i in range(int(num_batches_per_epoch)):
-                    _, cost, step = sess.run([train_op, loss, global_step])
-	    	    print("Step: %d," % (step+1), 
-			#        " Accuracy: %.4f," % final_accuracy,
-			        " Loss: %f" % cost,
-			        " Bctch_Time: %fs" % float(time.time()-batch_time))
-	    	    batch_time = time.time()
-		
-
-	    	print("Epoch: %d," % (e+1), 
-			" Accuracy: %.4f," % final_accuracy,
+	n = 0
+	cost = 1.0
+	step = 0
+	result_data = open("/root/result/result_pic.csv", "a+")
+	process_data = open("/root/result/process_data.csv", "a+")
+	while (not sv.should_stop()) and (step <= num_batches_per_epoch * Epoch):
+	    if (cost <= targted_loss):
+		break
+            _, cost, step = sess.run([train_op, loss, global_step])
+	    print("Step: %d," % (step+1), 
+			    " Loss: %f" % cost,
+			    " Bctch_Time: %fs" % float(time.time()-batch_time))
+	    batch_time = time.time()
+	    if ((step+1) % int(num_batches_per_epoch) == 0):
+		Epoch_Time = float(time.time()-epoch_time)
+		n=n+1
+	    	print("Epoch: %d," % (n), 
 			" Loss: %f" % cost,
-			" Epoch_Time: %fs" % float(time.time()-epoch_time),
+			" Epoch_Time: %fs" % Epoch_Time,
 			" Tolal_Time: %fs" % float(time.time()-start_time))
-		
-		
-	#index, sum_step, total_time, cost, final_accuracy    
-	final_accuracy = sess.run(accuracy, feed_dict = {x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0})
-	re = str(n_PS) + '-' + str(n_Workers) + '-' + str(FLAGS.task_index) + ',' + str(step) + ',' + str(float(time.time()-start_time)) + ',' + str(cost) + ',' + str(final_accuracy)
-        writer = open("re_2_"+Optimizer+".csv", "a+")
-	writer.write(re+"\r\n")
-	writer.close()
+		epoch_time = time.time()
+		line = str(n)+","+str(n_PS) + ',' + str(n_Workers) +",RoundRobinStrategy,asynchronous," + str(Optimizer) + ',' + str(batch_size) + ','+"learning_rate"+ ',' + str(cost) + ',' + str(Epoch_Time)
+        	process_data.write(line+"\r\n")
+
+    	total_time = time.time()-start_time
+        result = str(n_PS) + ',' + str(n_Workers) +",RoundRobinStrategy,asynchronous," + str(Optimizer) + ',' + str(batch_size) + ','+"learning_rate"+ ',' + str(cost) + ',' + str(total_time)
+	result_data.write(result+"\r\n")
+	result_data.close()
+	process_data.close()
     sv.stop 

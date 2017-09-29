@@ -28,7 +28,7 @@ import cifar10_input
 
  
 batch_size = 128
-data_dir = "cifar-10-batches-py"
+data_dir = "/root/data/cifar-10-batches-bin/"
 use_fp16 = False
 learning_rate = 0.1
 
@@ -359,7 +359,8 @@ def train(total_loss, global_step):
   with tf.control_dependencies([loss_averages_op]):
     opt = tf.train.GradientDescentOptimizer(lr)
     grads = opt.compute_gradients(total_loss)
-
+  #train_op = opt.minimize(loss, global_step=global_step)
+  
   # Apply gradients.
   apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
 
@@ -379,7 +380,7 @@ def train(total_loss, global_step):
 
   with tf.control_dependencies([apply_gradient_op, variables_averages_op]):
     train_op = tf.no_op(name='train')
-
+  
   return train_op
 
 

@@ -1,8 +1,55 @@
-./start_experiment.sh Adam 0.98 20
-#./start_experiment.sh Adam 0.99 20
-#./start_experiment.sh SGD 0.9 1
-#./start_experiment.sh SGD 0.9 2
-#./start_experiment.sh SGD 0.9 3
-#./start_experiment.sh SGD 0.9 4
-#./start_experiment.sh SGD 0.9 5
-#./start_experiment.sh SGD 0.9 6
+for(( i=1; i < 27; i++ ))
+do
+    j=`expr 27 - $i`
+    ./ps.sh $i $j Adam 0.05 2222 20000 100
+    i=`expr 1 + $i`
+done
+
+for(( i=1; i < 27; i++ ))
+do
+    j=`expr 27 - $i`
+    ./ps.sh $i $j Adam 0.05 2222 20000 300
+    i=`expr 1 + $i`
+done
+
+for(( i=1; i < 27; i++ ))
+do
+    j=`expr 27 - $i`
+    ./ps.sh $i $j Adam 0.05 2222 20000 500
+    i=`expr 1 + $i`
+done
+
+for(( i=1; i < 27; i++ ))
+do
+    j=`expr 27 - $i`
+    ./ps.sh $i $j Adam 0.05 2222 20000 700
+    i=`expr 1 + $i`
+done
+
+for(( i=1; i < 27; i++ ))
+do
+    j=`expr 27 - $i`
+    ./ps.sh $i $j Adam 0.05 2222 20000 900
+    i=`expr 1 + $i`
+done
+
+for(( i=1; i < 27; i++ ))
+do
+    j=`expr 27 - $i`
+    ./ps.sh $i $j Adam 0.95 2222 20 0.0001 11
+    i=`expr 1 + $i`
+done
+
+for(( i=1; i < 27; i++ ))
+do
+    j=`expr 27 - $i`
+    ./ps.sh $i $j Adam 0.95 2222 20 0.0001 13
+    i=`expr 1 + $i`
+done
+
+for(( i=1; i < 27; i++ ))
+do
+    j=`expr 27 - $i`
+    ./ps.sh $i $j Adam 0.95 2222 20 0.0001 15
+    i=`expr 1 + $i`
+done

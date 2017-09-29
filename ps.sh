@@ -2,9 +2,10 @@
 # $1 is the number of PSs
 # $2 is the number of workers
 # $3 is the optimizer of model
-# $4 is the targted_accuracy of model
+# $4 is the targted_loss of model
 # $5 is the tensorflow port
 # $6 is the empoch
+# $7 batch size
 # ps.sh run in ssd42
 
 get_ps_conf(){
@@ -33,7 +34,7 @@ do
 done
 
 echo "release port occpied!"
-./kill_cluster_pid.sh 16 42 $5
+kill_cluster_pid.sh 16 42 $5
 
 get_ps_conf $1 $5
 echo $ps
@@ -60,7 +61,7 @@ do
 	    then
 		sleep 0.5
 	    fi
-	    ssh ssd$i python /root/code/disCNN_cifar/disCNN_cifar10.py $ps $worker --job_name=worker --task_index=$index --targted_accuracy=$4 --empoch=$6 --optimizer=$3 
+	    ssh ssd$i python /root/code/disCNN_cifar/disCNN_cifar10.py $ps $worker --job_name=worker --task_index=$index --targted_loss=$4 --Epoch=$6 --optimizer=$3 --Batch_size=$7 >> /root/code/$index".temp"
             echo "worker"$index" complated"
 	    echo "1">temp$index
 	fi
@@ -80,7 +81,7 @@ do
     done	
     if [ $flag == $2 ]
     then
-    	./kill_cluster_pid.sh 16 42 $5
+    	kill_cluster_pid.sh 16 42 $5
 	break
     fi
 done 
