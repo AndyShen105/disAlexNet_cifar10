@@ -61,7 +61,7 @@ do
 	    then
 		sleep 0.5
 	    fi
-	    ssh ssd$i python /root/code/disCNN_cifar/disCNN_cifar10.py $ps $worker --job_name=worker --task_index=$index --targted_loss=$4 --Epoch=$6 --optimizer=$3 --Batch_size=$7 >> /root/code/$index".temp"
+	    ssh ssd$i python /root/code/disCNN_cifar/disCNN_cifar10.py $ps $worker --job_name=worker --task_index=$index --targted_loss=$4 --Epoch=$6 --optimizer=$3 --n_intra_threads=$7 --n_inter_threads=$8>> /root/code/$index".temp"
             echo "worker"$index" complated"
 	    echo "1">temp$index
 	fi
