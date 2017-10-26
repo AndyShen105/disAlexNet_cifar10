@@ -27,10 +27,8 @@ import tensorflow as tf
 import cifar10_input
 
  
-batch_size = 128
 data_dir = "/root/data/cifar-10-batches-bin/"
 use_fp16 = False
-learning_rate = 0.1
 
 #parameters initialize
 def parameters_initialize (i_batch_size, i_learning_rate):
@@ -70,8 +68,7 @@ LEARNING_RATE_DECAY_FACTOR = 0.1  # Learning rate decay factor.
 INITIAL_LEARNING_RATE = 0.1       # Initial learning rate.
 
 # Variables that affect learning rate.
-num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / batch_size
-decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
+#decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
 
 # If a model is trained with multiple GPUs, prefix all Op names with tower_name
 # to differentiate the operations. Note that this prefix is removed from the
@@ -133,7 +130,7 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
   return var
 
 
-def distorted_inputs():
+def distorted_inputs(batch_size):
   """Construct distorted input for CIFAR training using the Reader ops.
   Returns:
     images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
@@ -174,7 +171,7 @@ def inputs(eval_data):
   return images, labels
 
 
-def inference(images):
+def inference(images, batch_size):
   """Build the CIFAR-10 model.
   Args:
     images: Images returned from distorted_inputs() or inputs().
@@ -227,9 +224,9 @@ def inference(images):
   # local3
   with tf.variable_scope('local3') as scope:
     # Move everything into depth so we can perform a single matrix multiply.
-    reshape = tf.reshape(pool2, [128, -1])
+    reshape = tf.reshape(pool2, [batch_size, -1])
     dim = reshape.get_shape()[1].value
-    weights = _variable_with_weight_decay('weights', shape=[2304, 384],
+    weights = _variable_with_weight_decay('weights', shape=[dim, 384],
                                           stddev=0.04, wd=0.004)
     biases = _variable_on_cpu('biases', [384], tf.constant_initializer(0.1))
     local3 = tf.nn.relu(tf.matmul(reshape, weights) + biases, name=scope.name)
