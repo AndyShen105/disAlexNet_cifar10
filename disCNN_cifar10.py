@@ -32,11 +32,8 @@ batch_size = FLAGS.Batch_size
 learning_rate = FLAGS.Learning_rate
 targted_loss = FLAGS.targted_loss
 Optimizer = FLAGS.optimizer
-Epoch = FLAGS.Epoch
 n_intra_threads = FLAGS.n_intra_threads
 n_inter_threads = FLAGS.n_inter_threads
-imagenet_path = FLAGS.imagenet_path
-parameters_initialize(batch_size, learning_rate)
 n_batches_per_epoch = int(50000/batch_size)
 
 
@@ -87,7 +84,7 @@ elif FLAGS.job_name == "worker":
 	with tf.name_scope('Accuracy'):
 	    correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
 	    accuracy = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
-	
+	saver = tf.train.Saver()
 	init_op = tf.global_variables_initializer()
 	variables_check_op=tf.report_uninitialized_variables()
     	sess_config = tf.ConfigProto(
@@ -104,37 +101,20 @@ elif FLAGS.job_name == "worker":
             uninitalized_variables=sess.run(variables_check_op)
 	    if(len(uninitalized_variables.shape) == 1):
 		state = True
-	
-	step = 0
-	cost = 0
-	final_accuracy = 0
+
 	begin_time = time.time()
 	batch_time = time.time()
+	check_point_time = time.time()
 	n = 0
 	cost = 1000000.0
 	step = 1
-	count = 0
 	result_data = open("/root/ex_result/baseline/cnn_result_2.csv", "a+")
 	while (not sv.should_stop()) and (step <= n_batches_per_epoch * Epoch and cost>=targted_loss):
-
+	    if (time.time()-check_point_time>600) and is_chief:
+		print ("do a check_points")
+		saver.save(sess, save_path="train_logs", global_step=global_step)
+		check_point_time = time.time()
             _, cost, step = sess.run([train_op, loss, global_step])
-	    '''
-	    flag1 = step % n_batches_per_epoch
-	    flag2 = (step - 1) % n_batches_per_epoch
-	    flag3 = (step - 2) % n_batches_per_epoch
-	    if (flag1!=0 or flag2==0 or flag3==0):
-		epoch_time = sess.run(start_time)
-		print (epoch_time)
-		update_time = float(time.time())
-		Epoch_Time = float(update_time - epoch_time)
-		sess.run(update, feed_dict={start_copy: update_time})
-		ith_epoch = int(step / n_batches_per_epoch)
-	    
-	    print("Epoch: %d," % ith_epoch, 
-			" Loss: %f" % cost,
-			" Epoch_Time: %fs" % Epoch_Time,
-			" Tolal_Time: %fs" % float(time.time()-begin_time))
-	    '''
 	    process_data = open("/root/ex_result/baseline/cnn_"+str(learning_rate)+"_"+str(batch_size)+"_process_2.csv", "a+")
 	    line = str(step+1)+","+str(n_Workers) + ','+str(n_intra_threads)+","+ str(cost) + ',' + str(time.time())
             process_data.write(line+"\r\n")
