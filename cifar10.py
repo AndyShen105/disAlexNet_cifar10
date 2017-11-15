@@ -27,7 +27,7 @@ import tensorflow as tf
 import cifar10_input
 
  
-data_dir = "/root/data/cifar-10-batches-bin/"
+data_dir = "hdfs://ssd02:8020/user/root/train_data/cifar-10-batches-bin/"
 use_fp16 = False
 
 #parameters initialize
@@ -92,7 +92,7 @@ def _activation_summary(x):
                                        tf.nn.zero_fraction(x))
 
 
-def _variable_on_cpu(name, shape, initializer):
+def _variable_on_cpu(name, shape, initializer, variable_partition_num):
   """Helper to create a Variable stored on CPU memory.
   Args:
     name: name of the variable
@@ -102,11 +102,11 @@ def _variable_on_cpu(name, shape, initializer):
     Variable Tensor
   """
   dtype = tf.float16 if use_fp16 else tf.float32
-  var = tf.get_variable(name, shape, initializer=initializer, dtype=dtype)
+  var = tf.get_variable(name, shape, initializer=initializer, dtype=dtype, partitioner=tf.fixed_size_partitioner(variable_partition_num))
   return var
 
 
-def _variable_with_weight_decay(name, shape, stddev, wd):
+def _variable_with_weight_decay(name, shape, stddev, wd, variable_partition_num):
   """Helper to create an initialized Variable with weight decay.
   Note that the Variable is initialized with a truncated normal distribution.
   A weight decay is added only if one is specified.
@@ -123,7 +123,8 @@ def _variable_with_weight_decay(name, shape, stddev, wd):
   var = _variable_on_cpu(
       name,
       shape,
-      tf.truncated_normal_initializer(stddev=stddev, dtype=dtype))
+      tf.truncated_normal_initializer(stddev=stddev, dtype=dtype),
+      variable_partition_num)
   if wd is not None:
     weight_decay = tf.multiply(tf.nn.l2_loss(var), wd, name='weight_loss')
     tf.add_to_collection('losses', weight_decay)
@@ -188,9 +189,10 @@ def inference(images, batch_size):
     kernel = _variable_with_weight_decay('weights',
                                          shape=[5, 5, 3, 64],
                                          stddev=5e-2,
-                                         wd=0.0)
+                                         wd=0.0,
+					 1)
     conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
-    biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0))
+    biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0),1)
     pre_activation = tf.nn.bias_add(conv, biases)
     conv1 = tf.nn.relu(pre_activation, name=scope.name)
     _activation_summary(conv1)
@@ -209,7 +211,7 @@ def inference(images, batch_size):
                                          stddev=5e-2,
                                          wd=0.0)
     conv = tf.nn.conv2d(norm1, kernel, [1, 1, 1, 1], padding='SAME')
-    biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.1))
+    biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.1),1)
     pre_activation = tf.nn.bias_add(conv, biases)
     conv2 = tf.nn.relu(pre_activation, name=scope.name)
     _activation_summary(conv2)
@@ -227,7 +229,7 @@ def inference(images, batch_size):
     reshape = tf.reshape(pool2, [batch_size, -1])
     dim = reshape.get_shape()[1].value
     weights = _variable_with_weight_decay('weights', shape=[dim, 384],
-                                          stddev=0.04, wd=0.004)
+                                          stddev=0.04, wd=0.004,20)
     biases = _variable_on_cpu('biases', [384], tf.constant_initializer(0.1))
     local3 = tf.nn.relu(tf.matmul(reshape, weights) + biases, name=scope.name)
     _activation_summary(local3)
@@ -235,8 +237,8 @@ def inference(images, batch_size):
   # local4
   with tf.variable_scope('local4') as scope:
     weights = _variable_with_weight_decay('weights', shape=[384, 192],
-                                          stddev=0.04, wd=0.004)
-    biases = _variable_on_cpu('biases', [192], tf.constant_initializer(0.1))
+                                          stddev=0.04, wd=0.004, 20)
+    biases = _variable_on_cpu('biases', [192], tf.constant_initializer(0.1), 1)
     local4 = tf.nn.relu(tf.matmul(local3, weights) + biases, name=scope.name)
     _activation_summary(local4)
 
@@ -246,9 +248,9 @@ def inference(images, batch_size):
   # and performs the softmax internally for efficiency.
   with tf.variable_scope('softmax_linear') as scope:
     weights = _variable_with_weight_decay('weights', [192, NUM_CLASSES],
-                                          stddev=1/192.0, wd=0.0)
+                                          stddev=1/192.0, wd=0.0,1)
     biases = _variable_on_cpu('biases', [NUM_CLASSES],
-                              tf.constant_initializer(0.0))
+                              tf.constant_initializer(0.0), 1)
     softmax_linear = tf.add(tf.matmul(local4, weights), biases, name=scope.name)
     _activation_summary(softmax_linear)
 

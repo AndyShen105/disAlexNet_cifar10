@@ -20,8 +20,8 @@ tf.app.flags.DEFINE_float("targted_loss", 0.05, "targted accuracy of model")
 tf.app.flags.DEFINE_string("optimizer", "SGD", "optimizer we adopted")
 tf.app.flags.DEFINE_integer("Batch_size", 100, "Batch size")
 tf.app.flags.DEFINE_float("Learning_rate", 0.0001, "Learning rate")
-tf.app.flags.DEFINE_integer("Epoch", 1, "Epoch")
-tf.app.flags.DEFINE_string("imagenet_path", 10, "ImageNet data path")
+tf.app.flags.DEFINE_integer("Epoch", 200, "Epoch")
+tf.app.flags.DEFINE_string("imagenet_path", 100, "ImageNet data path")
 tf.app.flags.DEFINE_integer("n_intra_threads", 16, "n_intra_threads")
 tf.app.flags.DEFINE_integer("n_inter_threads", 16, "n_inter_threads")
 FLAGS = tf.app.flags.FLAGS
@@ -114,7 +114,7 @@ elif FLAGS.job_name == "worker":
 	cost = 1000000.0
 	step = 1
 	count = 0
-	result_data = open("/root/ex_result/baseline/cifar.csv", "a+")
+	result_data = open("/root/ex_result/baseline/cnn_result_2.csv", "a+")
 	while (not sv.should_stop()) and (step <= n_batches_per_epoch * Epoch and cost>=targted_loss):
 
             _, cost, step = sess.run([train_op, loss, global_step])
@@ -135,8 +135,8 @@ elif FLAGS.job_name == "worker":
 			" Epoch_Time: %fs" % Epoch_Time,
 			" Tolal_Time: %fs" % float(time.time()-begin_time))
 	    '''
-	    process_data = open("/root/ex_result/baseline/1.csv", "a+")
-	    line = str(step+1)+","+str(n_Workers) + ','+str(n_intra_threads)+","+ str(cost) + ',' + str(time.time()-batch_time)
+	    process_data = open("/root/ex_result/baseline/cnn_"+str(learning_rate)+"_"+str(batch_size)+"_process_2.csv", "a+")
+	    line = str(step+1)+","+str(n_Workers) + ','+str(n_intra_threads)+","+ str(cost) + ',' + str(time.time())
             process_data.write(line+"\r\n")
 	    process_data.close()
 	    print("Step: %d," % (step+1),
@@ -144,7 +144,7 @@ elif FLAGS.job_name == "worker":
                             " Bctch_Time: %fs" % float(time.time()-batch_time))
             batch_time = time.time()	
     	total_time = time.time()-begin_time
-	re = str(step+1)+","+str(n_Workers) + ','+str(n_intra_threads)+","+ str(cost) + ',' + str(total_time)
+	re = str(step+1)+","+str(n_Workers) + ','+str(n_intra_threads)+","+ str(cost) + ','+str(learning_rate)+","+str(batch_size)+","+ str(total_time)
 	result_data.write(re+"\r\n")
 	result_data.close()
     sv.stop 
