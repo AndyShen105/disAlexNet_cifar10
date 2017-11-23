@@ -2,10 +2,14 @@
 # $1 is the number of PSs
 # $2 is the number of workers
 # $3 is the optimizer of model
-# $4 is the targted_loss of model
-# $5 is the tensorflow port
-# $6 is the empoch
-# $7 batch size
+# $4 is the learning_rate
+# $5 is port
+# $6 is the model
+# $7 is the n_intra
+# $8 is the batch_size
+# $9 n_partition
+# #10 n_features
+
 # ps.sh run in b1g72
 
 get_ps_conf(){
@@ -63,7 +67,7 @@ do
 	    then
 		sleep 0.5
 	    fi
-	    ssh $ip python /root/code/disCNN_cifar/disCNN_cifar10.py $ps $worker --job_name=worker --task_index=$index --targted_loss=$4 --Epoch=$6 --optimizer=$3 --n_intra_threads=$7 --n_inter_threads=$8 >> /root/code/$index".temp"
+	    ssh $ip python /root/code/disCNN_cifar/disCNN_cifar10.py $ps $worker --job_name=worker --task_index=$index --targted_loss=0.05 --batch_size=$8 --learning_rate=$4 --optimizer=$3 --n_intra_threads=$7 --n_partitions=$9 >> /root/code/$index".temp"
             echo "worker"$index" complated"
 	    echo "1">temp$index
 	fi
