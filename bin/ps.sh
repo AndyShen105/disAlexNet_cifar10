@@ -6,32 +6,22 @@
 # $5 is the tensorflow port
 # $6 is the empoch
 # $7 batch size
-# ps.sh run in ssd42
+# ps.sh run in b1g72
 
 get_ps_conf(){
     ps=""
-    for(( i=42; i > 42-$1; i-- ))
+    for(( i=72; i > 72-$1; i-- ))
     do
-        if [ $i -lt 10 ]
-        then
-            ps="$ps,ssd0$i:"$2
-        else
-            ps="$ps,ssd$i:"$2
-        fi
+        ps="$ps,b1g$i:"$2
     done
         ps=${ps:1}
 };
 
 get_worker_conf(){
     worker=""
-    for(( i=42-$1; i > 42-$1-$2; i-- ))
+    for(( i=72-$1; i > 72-$1-$2; i-- ))
     do
-        if [ $i -lt 10 ]
-        then
-            worker="$worker,ssd0$i:"$3
-        else
-            worker="$worker,ssd$i:"$3
-        fi
+        worker="$worker,b1g$i:"$3
     done
     worker=${worker:1}
 };
@@ -44,35 +34,31 @@ do
 done
 
 echo "release port occpied!"
-kill_cluster_pid.sh 6 42 $5
+kill_cluster_pid.sh 37 72 $5
 
 get_ps_conf $1 $5
 echo $ps
 get_worker_conf $1 $2 $5
 echo $worker
 
-for(( i=42; i>42-$1-$2; i-- ))
+for(( i=72; i>72-$1-$2; i-- ))
 do
 {
-    if [ $i == 42 ]
+    if [ $i == 72 ]
     then
         python /root/code/disCNN_cifar/disCNN_cifar10.py $ps $worker --job_name=ps --task_index=0
     else
 	ip=""
         if [ $i -lt 10 ]
         then
-            ip="ssd0"$i
-        else
-            ip="ssd"$i
-        fi
-	#ssh ssd$i "source activate tensorflow"
-        n=`expr 42 - $1`
+            ip="b1g"$i
+        n=`expr 72 - $1`
         if [ $i -gt $n ]
         then
-            index=`expr 42 - $i`
+            index=`expr 72 - $i`
             ssh $ip python /root/code/disCNN_cifar/disCNN_cifar10.py $ps $worker --job_name=ps --task_index=$index >> temp$index
         else
-            index=`expr 42 - $1 - $i`
+            index=`expr 72 - $1 - $i`
 	    if [ $index != 0 ]
 	    then
 		sleep 0.5
@@ -97,7 +83,7 @@ do
     done	
     if [ $flag == $2 ]
     then
-    	kill_cluster_pid.sh 16 42 $5
+    	kill_cluster_pid.sh 37 72 $5
 	break
     fi
 done 
