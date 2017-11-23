@@ -23,7 +23,6 @@ tf.app.flags.DEFINE_float("Learning_rate", 0.0001, "Learning rate")
 tf.app.flags.DEFINE_integer("Epoch", 200, "Epoch")
 tf.app.flags.DEFINE_string("imagenet_path", 100, "ImageNet data path")
 tf.app.flags.DEFINE_integer("n_intra_threads", 16, "n_intra_threads")
-tf.app.flags.DEFINE_integer("n_inter_threads", 16, "n_inter_threads")
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -33,8 +32,8 @@ learning_rate = FLAGS.Learning_rate
 targted_loss = FLAGS.targted_loss
 Optimizer = FLAGS.optimizer
 n_intra_threads = FLAGS.n_intra_threads
-n_inter_threads = FLAGS.n_inter_threads
-n_batches_per_epoch = int(50000/batch_size)
+n_inter_threads = 16 - FLAGS.n_intra_threads
+
 
 
 # cluster specification
@@ -78,7 +77,7 @@ elif FLAGS.job_name == "worker":
 	loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
 	# specify optimizer
 	with tf.name_scope('train'):
-	    grad_op = get_optimizer( "Adam", learning_rate)
+	    grad_op = get_optimizer( Optimizer, learning_rate)
 	    train_op = grad_op.minimize(loss, global_step=global_step)
 	# accuracy
 	with tf.name_scope('Accuracy'):
@@ -108,14 +107,16 @@ elif FLAGS.job_name == "worker":
 	n = 0
 	cost = 1000000.0
 	step = 1
-	result_data = open("/root/ex_result/baseline/cnn_result_2.csv", "a+")
-	while (not sv.should_stop()) and (step <= n_batches_per_epoch * Epoch and cost>=targted_loss):
+	job_id = "CNN_"+str(n_Workers)+"_"+str(n_intra_threads)+"_"+Optimizer+"_"+str(learning_rate)+"_"+str(batch_size)+"_"+str(n_partitions)
+	result_data = open("/root/ex_result/baseline/"+job_id+"result.csv", "a+")
+	while (not sv.should_stop()) and cost>=targted_loss:
 	    if (time.time()-check_point_time>600) and is_chief:
-		print ("do a check_points")
-		saver.save(sess, save_path="train_logs", global_step=global_step)
-		check_point_time = time.time()
-            _, cost, step = sess.run([train_op, loss, global_step])
-	    process_data = open("/root/ex_result/baseline/cnn_"+str(learning_rate)+"_"+str(batch_size)+"_process_2.csv", "a+")
+			print ("do a check_points")
+			saver.save(sess, save_path="train_logs", global_step=global_step)
+			check_point_time = time.time()
+        _, cost, step = sess.run([train_op, loss, global_step])
+
+	    process_data = open("/root/ex_result/baseline/"+job_id+"_process.csv", "a+")
 	    line = str(step+1)+","+str(n_Workers) + ','+str(n_intra_threads)+","+ str(cost) + ',' + str(time.time())
             process_data.write(line+"\r\n")
 	    process_data.close()
@@ -124,7 +125,7 @@ elif FLAGS.job_name == "worker":
                             " Bctch_Time: %fs" % float(time.time()-batch_time))
             batch_time = time.time()	
     	total_time = time.time()-begin_time
-	re = str(step+1)+","+str(n_Workers) + ','+str(n_intra_threads)+","+ str(cost) + ','+str(learning_rate)+","+str(batch_size)+","+ str(total_time)
+	re = str(step+1)+","+str(n_Workers) + ','+str(n_intra_threads) +','+Optimizer+ ','+str(learning_rate)+","+str(batch_size)+","+ str(n_partitions)+","+ str(cost)+","+str(total_time)
 	result_data.write(re+"\r\n")
 	result_data.close()
     sv.stop 
