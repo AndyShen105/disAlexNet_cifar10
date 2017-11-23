@@ -5,18 +5,12 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import argparse
 import os
 import re
-import sys
-import tarfile
-
-from six.moves import urllib
 import tensorflow as tf
 
 import cifar10_input
 
- 
 data_dir = "hdfs://b10g37:8020/user/root/train_data/cifar-10-batches-bin/"
 use_fp16 = False
 
@@ -162,7 +156,7 @@ def inputs(eval_data):
   return images, labels
 
 
-def inference(images, batch_size, , variable_partition_num):
+def inference(images, batch_size, variable_partition_num):
   """Build the CIFAR-10 model.
   Args:
     images: Images returned from distorted_inputs() or inputs().

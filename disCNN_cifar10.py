@@ -1,13 +1,12 @@
 #-*-coding:UTF-8-*-
 from __future__ import print_function
 
-import tensorflow as tf
+import os
 import sys
 import time
-import os
-import tensorflow as tf
+
+import cifar10
 from cifar10 import *
-import cifar10 
 
 #get the optimizer
 os.environ['TF_CPP_MIN_LOG_LEVEL']='3'
@@ -20,9 +19,8 @@ tf.app.flags.DEFINE_float("targted_loss", 0.05, "targted accuracy of model")
 tf.app.flags.DEFINE_string("optimizer", "SGD", "optimizer we adopted")
 tf.app.flags.DEFINE_integer("Batch_size", 100, "Batch size")
 tf.app.flags.DEFINE_float("Learning_rate", 0.0001, "Learning rate")
-tf.app.flags.DEFINE_integer("Epoch", 200, "Epoch")
-tf.app.flags.DEFINE_string("imagenet_path", 100, "ImageNet data path")
 tf.app.flags.DEFINE_integer("n_intra_threads", 16, "n_intra_threads")
+tf.app.flags.DEFINE_integer("n_partitions", 1, "n_partitions")
 FLAGS = tf.app.flags.FLAGS
 
 
@@ -31,6 +29,7 @@ batch_size = FLAGS.Batch_size
 learning_rate = FLAGS.Learning_rate
 targted_loss = FLAGS.targted_loss
 Optimizer = FLAGS.optimizer
+n_partitions = FLAGS.n_partitions
 n_intra_threads = FLAGS.n_intra_threads
 n_inter_threads = 16 - FLAGS.n_intra_threads
 
@@ -72,7 +71,7 @@ elif FLAGS.job_name == "worker":
 	x, y_ = cifar10.distorted_inputs(batch_size)
 	
 	#creat an CNN for cifar10
-  	y_conv = cifar10.inference(x, batch_size)
+    y_conv = cifar10.inference(x, batch_size, n_partitions)
  
 	loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
 	# specify optimizer
