@@ -34,7 +34,7 @@ def get_optimizer(optimizer, learning_rate):
     elif optimizer == "Momentum":
 	return  tf.train.MomentumOptimizer(learning_rate, 0.9)
     elif optimizer == "RMSProp":
-	return  tf.train.RMSProp(learning_rate)
+	return  tf.train.RMSPropOptimizer(learning_rate)
 
 
 
@@ -156,7 +156,7 @@ def inputs(eval_data):
   return images, labels
 
 
-def inference(images, batch_size, variable_partition_num):
+def inference(images, batch_size, partition_num):
   """Build the CIFAR-10 model.
   Args:
     images: Images returned from distorted_inputs() or inputs().
@@ -174,7 +174,7 @@ def inference(images, batch_size, variable_partition_num):
                                          shape=[5, 5, 3, 64],
                                          stddev=5e-2,
                                          wd=0.0,
-					                    1)
+					 variable_partition_num=1)
     conv = tf.nn.conv2d(images, kernel, [1, 1, 1, 1], padding='SAME')
     biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.0),1)
     pre_activation = tf.nn.bias_add(conv, biases)
@@ -193,7 +193,8 @@ def inference(images, batch_size, variable_partition_num):
     kernel = _variable_with_weight_decay('weights',
                                          shape=[5, 5, 64, 64],
                                          stddev=5e-2,
-                                         wd=0.0)
+                                         wd=0.0,
+					 variable_partition_num=1)
     conv = tf.nn.conv2d(norm1, kernel, [1, 1, 1, 1], padding='SAME')
     biases = _variable_on_cpu('biases', [64], tf.constant_initializer(0.1),1)
     pre_activation = tf.nn.bias_add(conv, biases)
@@ -201,8 +202,7 @@ def inference(images, batch_size, variable_partition_num):
     _activation_summary(conv2)
 
   # norm2
-  norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75,
-                    name='norm2')
+  norm2 = tf.nn.lrn(conv2, 4, bias=1.0, alpha=0.001 / 9.0, beta=0.75, name='norm2')
   # pool2
   pool2 = tf.nn.max_pool(norm2, ksize=[1, 3, 3, 1],
                          strides=[1, 2, 2, 1], padding='SAME', name='pool2')
@@ -212,16 +212,22 @@ def inference(images, batch_size, variable_partition_num):
     # Move everything into depth so we can perform a single matrix multiply.
     reshape = tf.reshape(pool2, [batch_size, -1])
     dim = reshape.get_shape()[1].value
-    weights = _variable_with_weight_decay('weights', shape=[dim, 384],
-                                          stddev=0.04, wd=0.004, variable_partition_num)
-    biases = _variable_on_cpu('biases', [384], tf.constant_initializer(0.1))
+    weights = _variable_with_weight_decay('weights', 
+					shape=[dim, 384],
+                                        stddev=0.04, 
+					wd=0.004, 
+					variable_partition_num=partition_num)
+    biases = _variable_on_cpu('biases', [384], tf.constant_initializer(0.1), 1)
     local3 = tf.nn.relu(tf.matmul(reshape, weights) + biases, name=scope.name)
     _activation_summary(local3)
 
   # local4
   with tf.variable_scope('local4') as scope:
-    weights = _variable_with_weight_decay('weights', shape=[384, 192],
-                                          stddev=0.04, wd=0.004, variable_partition_num)
+    weights = _variable_with_weight_decay('weights', 
+					shape=[384, 192],
+                                        stddev=0.04, 
+					wd=0.004, 
+					variable_partition_num=partition_num)
     biases = _variable_on_cpu('biases', [192], tf.constant_initializer(0.1), 1)
     local4 = tf.nn.relu(tf.matmul(local3, weights) + biases, name=scope.name)
     _activation_summary(local4)
@@ -232,7 +238,7 @@ def inference(images, batch_size, variable_partition_num):
   # and performs the softmax internally for efficiency.
   with tf.variable_scope('softmax_linear') as scope:
     weights = _variable_with_weight_decay('weights', [192, NUM_CLASSES],
-                                          stddev=1/192.0, wd=0.0,1)
+                                          stddev=1/192.0, wd=0.0,variable_partition_num=1)
     biases = _variable_on_cpu('biases', [NUM_CLASSES],
                               tf.constant_initializer(0.0), 1)
     softmax_linear = tf.add(tf.matmul(local4, weights), biases, name=scope.name)

@@ -4,7 +4,6 @@ from __future__ import print_function
 import os
 import sys
 import time
-
 import cifar10
 from cifar10 import *
 
@@ -17,7 +16,7 @@ tf.app.flags.DEFINE_string("job_name", "", "Either 'ps' or 'worker'")
 tf.app.flags.DEFINE_integer("task_index", 0, "Index of task within the job")
 tf.app.flags.DEFINE_float("targted_loss", 0.05, "targted accuracy of model")
 tf.app.flags.DEFINE_string("optimizer", "SGD", "optimizer we adopted")
-tf.app.flags.DEFINE_integer("Batch_size", 100, "Batch size")
+tf.app.flags.DEFINE_integer("Batch_size", 200, "Batch size")
 tf.app.flags.DEFINE_float("Learning_rate", 0.0001, "Learning rate")
 tf.app.flags.DEFINE_integer("n_intra_threads", 16, "n_intra_threads")
 tf.app.flags.DEFINE_integer("n_partitions", 1, "n_partitions")
@@ -71,7 +70,7 @@ elif FLAGS.job_name == "worker":
 	x, y_ = cifar10.distorted_inputs(batch_size)
 	
 	#creat an CNN for cifar10
-    y_conv = cifar10.inference(x, batch_size, n_partitions)
+    	y_conv = cifar10.inference(x, batch_size, n_partitions)
  
 	loss = tf.reduce_mean(tf.nn.sparse_softmax_cross_entropy_with_logits(labels=y_, logits=y_conv))
 	# specify optimizer
@@ -110,10 +109,10 @@ elif FLAGS.job_name == "worker":
 	result_data = open("/root/ex_result/baseline/"+job_id+"result.csv", "a+")
 	while (not sv.should_stop()) and cost>=targted_loss:
 	    if (time.time()-check_point_time>600) and is_chief:
-			print ("do a check_points")
-			saver.save(sess, save_path="train_logs", global_step=global_step)
-			check_point_time = time.time()
-        _, cost, step = sess.run([train_op, loss, global_step])
+		print ("do a check_points")
+		saver.save(sess, save_path="train_logs", global_step=global_step)
+		check_point_time = time.time()
+            _, cost, step = sess.run([train_op, loss, global_step])
 
 	    process_data = open("/root/ex_result/baseline/"+job_id+"_process.csv", "a+")
 	    line = str(step+1)+","+str(n_Workers) + ','+str(n_intra_threads)+","+ str(cost) + ',' + str(time.time())
@@ -124,7 +123,7 @@ elif FLAGS.job_name == "worker":
                             " Bctch_Time: %fs" % float(time.time()-batch_time))
             batch_time = time.time()	
     	total_time = time.time()-begin_time
-	re = str(step+1)+","+str(n_Workers) + ','+str(n_intra_threads) +','+Optimizer+ ','+str(learning_rate)+","+str(batch_size)+","+ str(n_partitions)+","+ str(cost)+","+str(total_time)
+	re = "CNN"+","+str(step+1)+","+str(n_Workers)+','+str(n_intra_threads)+','+Optimizer+','+str(learning_rate)+","+str(batch_size)+","+ str(n_partitions)+","+ str(cost)+","+str(total_time)
 	result_data.write(re+"\r\n")
 	result_data.close()
     sv.stop 
